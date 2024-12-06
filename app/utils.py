@@ -39,12 +39,6 @@ def calculate_text_metrics(text: str, nlp: Optional[spacy.Language] = None) -> D
         pos_counts[token.pos_] = pos_counts.get(token.pos_, 0) + 1
     metrics['pos_distribution'] = pos_counts
     
-    # Dependency metrics
-    dep_counts = {}
-    for token in doc:
-        dep_counts[token.dep_] = dep_counts.get(token.dep_, 0) + 1
-    metrics['dependency_distribution'] = dep_counts
-    
     return metrics
 
 def extract_sentences(text: str, nlp: Optional[spacy.Language] = None) -> list:
