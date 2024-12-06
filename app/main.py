@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Form
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from .models import TextInput, TextResponse
+from pydantic import BaseModel, Field, validator
+from typing import List
 from .text_processor import TextOptimizer
-from .exceptions import TextOptimizationError
+from .exceptions import *
 from .config import get_settings
 import logging
 
@@ -25,6 +26,17 @@ templates = Jinja2Templates(directory="templates")
 
 # Initialize text optimizer
 text_optimizer = TextOptimizer()
+
+class TextInput(BaseModel):
+    content: str = Field(min_length=1, max_length=10000)
+    optimization_level: str = Field(default="medium", regex="^(light|medium|aggressive)$")
+    preserve_keywords: List[str] = []
+
+    @validator('preserve_keywords', each_item=True)
+    def preserve_keyword_length(cls, v):
+        if len(v) > 50:
+            raise ValueError("Preserve keyword must be less than 50 characters")
+        return v
 
 @app.exception_handler(TextOptimizationError)
 async def optimization_exception_handler(request: Request, exc: TextOptimizationError):
