@@ -22,6 +22,18 @@ class TextOptimizer:
                     synonyms.add(lemma.name())
         return list(synonyms)[:3]  # Return top 3 synonyms
     
+    def replace_with_synonyms(self, sentence: str) -> str:
+        """Replace words in a sentence with their synonyms."""
+        words = sentence.split()
+        optimized_words = []
+        for word in words:
+            synonyms = self.get_synonyms(word)
+            if synonyms:
+                optimized_words.append(synonyms[0])
+            else:
+                optimized_words.append(word)
+        return ' '.join(optimized_words)
+    
     def optimize_sentence_structure(self, sentence: str) -> str:
         """Optimize sentence structure using spaCy."""
         doc = self.nlp(sentence)
@@ -100,7 +112,8 @@ class TextOptimizer:
             # Optimize sentence by sentence
             optimized_sentences = []
             for sent in doc.sents:
-                optimized = self.optimize_sentence_structure(sent.text)
+                optimized = self.replace_with_synonyms(sent.text)
+                optimized = self.optimize_sentence_structure(optimized)
                 optimized_sentences.append(optimized)
             
             # Join sentences
