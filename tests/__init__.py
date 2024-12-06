@@ -1,3 +1,2 @@
-"""
-Test suite for Text Semantic Optimizer
-"""
+
+# tests/__init__.py
