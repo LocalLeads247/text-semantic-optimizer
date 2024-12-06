@@ -1,27 +1,35 @@
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
 
 class TextInput(BaseModel):
-    content: str = Field(..., min_length=1, max_length=10000)
-    optimization_level: str = Field(default="medium", regex="^(light|medium|aggressive)$")
-    preserve_keywords: Optional[List[str]] = Field(default=[])
-    language: str = Field(default="en")
+    text: str = Field(..., description="Input text to analyze or enhance")
+    preserve_phrases: Optional[List[str]] = Field(default=None, description="Phrases to preserve during enhancement")
+    optimization_level: str = Field(default="medium", description="Optimization level: light, medium, or aggressive")
 
-class TextMetrics(BaseModel):
-    word_count: int
-    sentence_count: int
-    avg_word_length: float
-    named_entities: Dict[str, int]
-    readability_scores: Dict[str, float]
-
-class OptimizationSuggestion(BaseModel):
+class GrammarIssue(BaseModel):
     type: str
-    message: str
-    severity: str
-    span: Optional[tuple[int, int]] = None
+    text: str
+    start: int
+    end: int
+    subject: Optional[str] = None
+    verb: Optional[str] = None
+    article: Optional[str] = None
+    noun: Optional[str] = None
 
-class TextResponse(BaseModel):
-    original: str
-    optimized: str
-    metrics: TextMetrics
-    suggestions: List[OptimizationSuggestion]
+class GrammarResponse(BaseModel):
+    original_text: str
+    enhanced_text: str
+    issues: List[GrammarIssue]
+    improvement_score: float
+
+class SentimentResponse(BaseModel):
+    text: str
+    polarity: float
+    subjectivity: float
+    objectivity: float
+    emotional_tone: Dict[str, float]
+    summary: str
+
+class TextAnalysisResponse(BaseModel):
+    grammar: GrammarResponse
+    sentiment: SentimentResponse

@@ -1,113 +1,92 @@
-from fastapi import FastAPI, HTTPException, Request, Form
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, Field, validator
-from typing import List
-from .text_processor import TextOptimizer
-from .exceptions import *
-from .config import get_settings
-import logging
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from .models import TextInput, GrammarResponse, SentimentResponse, TextAnalysisResponse
+from .processors.grammar_enhancement import GrammarEnhancer
+from .processors.sentiment_analyzer import SentimentAnalyzer
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Initialize FastAPI app
 app = FastAPI(
     title="Text Semantic Optimizer",
-    description="API for optimizing text semantics and readability",
-    version="0.1.0"
+    description="Advanced text analysis and optimization API",
+    version="1.0.0"
 )
 
-# Mount static files and templates
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Initialize text optimizer
-text_optimizer = TextOptimizer()
+# Initialize processors
+grammar_enhancer = GrammarEnhancer()
+sentiment_analyzer = SentimentAnalyzer()
 
-class TextInput(BaseModel):
-    content: str = Field(min_length=1, max_length=10000)
-    optimization_level: str = Field(default="medium", regex="^(light|medium|aggressive)$")
-    preserve_keywords: List[str] = []
-
-    @validator('preserve_keywords', each_item=True)
-    def preserve_keyword_length(cls, v):
-        if len(v) > 50:
-            raise ValueError("Preserve keyword must be less than 50 characters")
-        return v
-
-@app.exception_handler(TextOptimizationError)
-async def optimization_exception_handler(request: Request, exc: TextOptimizationError):
-    logger.error(f"Text optimization error: {exc.message}")
-    return JSONResponse(
-        status_code=400,
-        content={"error": exc.message}
-    )
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unexpected error: {str(exc)}")
-    return JSONResponse(
-        status_code=500,
-        content={"error": "An unexpected error occurred"}
-    )
-
-@app.get("/")
-async def read_root(request: Request):
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request}
-    )
-
-@app.post("/api/optimize", response_model=TextResponse)
-async def optimize_text(text_input: TextInput):
+@app.post("/analyze", response_model=TextAnalysisResponse)
+async def analyze_text(input_data: TextInput):
+    """Analyze text for both grammar and sentiment."""
     try:
-        logger.info(f"Processing text optimization request. Length: {len(text_input.content)}")
-        
-        optimized_text, metrics, suggestions = text_optimizer.optimize_text(
-            text_input.content,
-            text_input.optimization_level,
-            text_input.preserve_keywords
+        # Grammar analysis
+        enhanced_text, issues = grammar_enhancer.enhance_text(input_data.text)
+        improvement_score = len(issues) / len(input_data.text.split())
+        grammar_response = GrammarResponse(
+            original_text=input_data.text,
+            enhanced_text=enhanced_text,
+            issues=issues,
+            improvement_score=1 - improvement_score
         )
-        
-        logger.info("Text optimization completed successfully")
-        
-        return TextResponse(
-            original=text_input.content,
-            optimized=optimized_text,
-            metrics=metrics,
-            suggestions=suggestions
-        )
-        
-    except TextOptimizationError as e:
-        logger.error(f"Text optimization error: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-        
-    except Exception as e:
-        logger.error(f"Unexpected error during optimization: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
 
-# Test example
-if __name__ == "__main__":
-    text_input = TextInput(
-        content="The quick brown fox jumps over the lazy dog.",
-        optimization_level="medium",
-        preserve_keywords=[]
-    )
-    
-    optimized_text, metrics, suggestions = text_optimizer.optimize_text(
-        text_input.content,
-        text_input.optimization_level,
-        text_input.preserve_keywords
-    )
-    
-    print("Original text:")
-    print(text_input.content)
-    print("\nOptimized text:")
-    print(optimized_text)
-    print("\nMetrics:")
-    print(metrics)
-    print("\nSuggestions:")
-    print(suggestions)
+        # Sentiment analysis
+        sentiment_score = sentiment_analyzer.analyze_sentiment(input_data.text)
+        sentiment_response = SentimentResponse(
+            text=input_data.text,
+            polarity=sentiment_score.polarity,
+            subjectivity=sentiment_score.subjectivity,
+            objectivity=sentiment_score.objectivity,
+            emotional_tone=sentiment_score.emotional_tone,
+            summary=sentiment_analyzer.get_sentiment_summary(sentiment_score)
+        )
+
+        return TextAnalysisResponse(
+            grammar=grammar_response,
+            sentiment=sentiment_response
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/enhance/grammar", response_model=GrammarResponse)
+async def enhance_grammar(input_data: TextInput):
+    """Enhance text grammar and return detailed analysis."""
+    try:
+        enhanced_text, issues = grammar_enhancer.enhance_text(input_data.text)
+        improvement_score = len(issues) / len(input_data.text.split())
+        return GrammarResponse(
+            original_text=input_data.text,
+            enhanced_text=enhanced_text,
+            issues=issues,
+            improvement_score=1 - improvement_score
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/analyze/sentiment", response_model=SentimentResponse)
+async def analyze_sentiment(input_data: TextInput):
+    """Analyze text sentiment and emotional tone."""
+    try:
+        sentiment_score = sentiment_analyzer.analyze_sentiment(input_data.text)
+        return SentimentResponse(
+            text=input_data.text,
+            polarity=sentiment_score.polarity,
+            subjectivity=sentiment_score.subjectivity,
+            objectivity=sentiment_score.objectivity,
+            emotional_tone=sentiment_score.emotional_tone,
+            summary=sentiment_analyzer.get_sentiment_summary(sentiment_score)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health")
+async def health_check():
+    """API health check endpoint."""
+    return {"status": "healthy", "version": "1.0.0"}
