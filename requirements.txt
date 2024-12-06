@@ -35,10 +35,6 @@ mypy==1.8.0
 mkdocs==1.5.3
 mkdocs-material==9.5.3
 
-# Additional models
-python -m spacy download en_core_web_sm
-python -m spacy download en_core_web_md
-
 # Performance monitoring
 prometheus-client==0.19.0
 prometheus-fastapi-instrumentator==6.1.0
