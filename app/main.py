@@ -1,5 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pathlib import Path
 from .models import (
     TextInput, GrammarResponse, SentimentResponse, 
     TextAnalysisResponse, StyleResponse, StyleIssue
@@ -8,6 +11,7 @@ from .processors.grammar_enhancement import GrammarEnhancer
 from .processors.sentiment_analyzer import SentimentAnalyzer
 from .processors.style_guide import StyleGuideProcessor, StyleViolation
 
+# Initialize FastAPI app
 app = FastAPI(
     title="Text Semantic Optimizer",
     description="Advanced text analysis and optimization API",
@@ -23,10 +27,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files and templates
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+
 # Initialize processors
 grammar_enhancer = GrammarEnhancer()
 sentiment_analyzer = SentimentAnalyzer()
 style_processor = StyleGuideProcessor()
+
+@app.get("/")
+async def home(request: Request):
+    """Serve the main web interface."""
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/analyze", response_model=TextAnalysisResponse)
 async def analyze_text(input_data: TextInput):
