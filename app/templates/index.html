@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Semantic Optimizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Text Semantic Optimizer</h1>
+            <p class="text-gray-600">Analyze and enhance your text with advanced NLP capabilities</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Input Section -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4">Input Text</h2>
+                <textarea 
+                    id="inputText"
+                    class="w-full h-48 p-4 border border-gray-300 rounded-lg mb-4 custom-scrollbar"
+                    placeholder="Enter your text here..."></textarea>
+                
+                <div class="flex flex-wrap gap-4 mb-4">
+                    <select id="styleGuide" class="p-2 border border-gray-300 rounded-lg">
+                        <option value="">No Style Guide</option>
+                        <option value="academic">Academic</option>
+                        <option value="business">Business</option>
+                        <option value="technical">Technical</option>
+                    </select>
+                    
+                    <button 
+                        id="analyzeBtn"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Analyze Text
+                    </button>
+                </div>
+
+                <div id="loadingSpinner" class="hidden flex justify-center items-center my-4">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="space-y-6">
+                <!-- Grammar Analysis -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Grammar Analysis</h2>
+                    <div id="grammarResults" class="space-y-4">
+                        <p class="text-gray-600">No analysis yet. Enter text and click Analyze.</p>
+                    </div>
+                </div>
+
+                <!-- Style Analysis -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Style Analysis</h2>
+                    <div id="styleResults" class="space-y-4">
+                        <p class="text-gray-600">No analysis yet. Enter text and click Analyze.</p>
+                    </div>
+                </div>
+
+                <!-- Sentiment Analysis -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Sentiment Analysis</h2>
+                    <div id="sentimentResults" class="space-y-4">
+                        <p class="text-gray-600">No analysis yet. Enter text and click Analyze.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('analyzeBtn').addEventListener('click', async () => {
+            const text = document.getElementById('inputText').value.trim();
+            const styleGuide = document.getElementById('styleGuide').value;
+
+            if (!text) {
+                alert('Please enter some text to analyze.');
+                return;
+            }
+
+            // Show loading spinner
+            document.getElementById('loadingSpinner').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        style_guide: styleGuide || null
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Update Grammar Results
+                const grammarHtml = `
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-semibold">Improvement Score</h3>
+                            <span class="text-${data.grammar.improvement_score > 0.7 ? 'green' : 'red'}-600">
+                                ${(data.grammar.improvement_score * 100).toFixed(1)}%
+                            </span>
+                        </div>
+                        ${data.grammar.issues.map(issue => `
+                            <div class="mb-2 p-2 bg-red-50 rounded">
+                                <span class="font-medium">${issue.type}:</span> 
+                                <span class="text-gray-700">${issue.text}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                document.getElementById('grammarResults').innerHTML = grammarHtml;
+
+                // Update Style Results
+                const styleHtml = data.style ? `
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-semibold">Compliance Score</h3>
+                            <span class="text-${data.style.compliance_score > 0.7 ? 'green' : 'red'}-600">
+                                ${(data.style.compliance_score * 100).toFixed(1)}%
+                            </span>
+                        </div>
+                        ${data.style.issues.map(issue => `
+                            <div class="mb-2 p-2 bg-yellow-50 rounded">
+                                <div class="font-medium">${issue.rule_name}</div>
+                                <div class="text-gray-700">${issue.text}</div>
+                                <div class="text-sm text-gray-600 mt-1">Suggestion: ${issue.suggestion}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '<p class="text-gray-600">No style guide selected.</p>';
+                document.getElementById('styleResults').innerHTML = styleHtml;
+
+                // Update Sentiment Results
+                const sentimentHtml = `
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <p class="mb-4">${data.sentiment.summary}</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="font-medium">Polarity</h4>
+                                <div class="text-${data.sentiment.polarity > 0 ? 'green' : 'red'}-600">
+                                    ${data.sentiment.polarity.toFixed(2)}
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">Subjectivity</h4>
+                                <div>${data.sentiment.subjectivity.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <h4 class="font-medium mb-2">Emotional Tone</h4>
+                            <div class="grid grid-cols-2 gap-2">
+                                ${Object.entries(data.sentiment.emotional_tone)
+                                    .filter(([_, value]) => value > 0)
+                                    .map(([emotion, value]) => `
+                                        <div class="flex justify-between">
+                                            <span>${emotion}</span>
+                                            <span>${(value * 100).toFixed(1)}%</span>
+                                        </div>
+                                    `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('sentimentResults').innerHTML = sentimentHtml;
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while analyzing the text.');
+            } finally {
+                // Hide loading spinner
+                document.getElementById('loadingSpinner').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
