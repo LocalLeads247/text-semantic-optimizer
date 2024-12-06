@@ -1,4 +1,3 @@
-
 from app.text_processor import TextOptimizer
 from app.exceptions import TextTooLongError, TextTooShortError, InvalidOptimizationLevelError
 
@@ -51,3 +50,33 @@ def test_optimize_text_invalid_optimization_level():
         assert False
     except InvalidOptimizationLevelError as e:
         assert str(e) == "Invalid optimization level: invalid"
+
+def test_get_synonyms():
+    optimizer = TextOptimizer()
+    synonyms = optimizer.get_synonyms("quick")
+    assert len(synonyms) == 3
+    assert "rapid" in synonyms
+    assert "fast" in synonyms
+    assert "speedy" in synonyms
+
+def test_optimize_sentence_structure():
+    optimizer = TextOptimizer()
+    sentence = "This is a very long sentence that should be split into two sentences."
+    optimized_sentence = optimizer.optimize_sentence_structure(sentence)
+    assert len(optimized_sentence.split(".")) == 2
+
+def test_analyze_readability():
+    optimizer = TextOptimizer()
+    text = "This is a sample text for testing. It has multiple sentences and words."
+    metrics = optimizer.analyze_readability(text)
+    assert metrics["sentence_count"] == 2
+    assert metrics["word_count"] == 12
+    assert metrics["avg_sentence_length"] == 6.0
+    assert metrics["avg_word_length"] == 5.5
+
+def test_generate_suggestions():
+    optimizer = TextOptimizer()
+    text = "This is a long sentence that should be broken down. Another long sentence that could also be improved."
+    suggestions = optimizer.generate_suggestions(optimizer.nlp(text))
+    assert "Consider breaking down 2 long sentences for better readability" in suggestions
+    assert "Consider simplifying complex words: sentence" in suggestions
