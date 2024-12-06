@@ -1,11 +1,44 @@
+# Core dependencies
 fastapi==0.109.2
 uvicorn==0.27.1
-spacy==3.8.2
-scikit-learn==1.4.0
-nltk==3.8.1
-textstat==0.7.4
-numpy==1.26.4
 pydantic==2.10.3
 python-multipart==0.0.6
+
+# Template and static files
 jinja2==3.1.2
 aiofiles==23.2.1
+
+# NLP and ML libraries
+spacy==3.8.2
+nltk==3.8.1
+scikit-learn==1.4.0
+textstat==0.7.4
+numpy==1.26.4
+pandas==2.2.0
+
+# Text processing
+beautifulsoup4==4.12.3
+markdown==3.5.2
+
+# Testing
+pytest==8.0.0
+pytest-cov==4.1.0
+httpx==0.27.0
+
+# Development tools
+black==24.1.1
+flake8==7.0.0
+isort==5.13.2
+mypy==1.8.0
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.3
+
+# Additional models
+python -m spacy download en_core_web_sm
+python -m spacy download en_core_web_md
+
+# Performance monitoring
+prometheus-client==0.19.0
+prometheus-fastapi-instrumentator==6.1.0

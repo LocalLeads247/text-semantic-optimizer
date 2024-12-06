@@ -1,26 +1,33 @@
 import spacy
-from typing import List, Dict, Any
-import nltk
-from nltk.tokenize import sent_tokenize
-from sklearn.feature_extraction.text import TfidfVectorizer
+import logging
+from typing import Dict, Any
 
-def initialize_nlp():
-    """Initialize NLP models and download required resources."""
+def initialize_nlp(model_name: str = 'en_core_web_sm') -> spacy.Language:
+    """Initialize spaCy NLP model."""
     try:
-        nlp = spacy.load("en_core_web_sm")
-        nltk.download('punkt', quiet=True)
+        nlp = spacy.load(model_name)
         return nlp
     except OSError:
-        raise RuntimeError("Required language model 'en_core_web_sm' not found. Please install it using 'python -m spacy download en_core_web_sm'")
+        logging.warning(f"Downloading language model {model_name}")
+        spacy.cli.download(model_name)
+        return spacy.load(model_name)
 
 def calculate_text_metrics(text: str) -> Dict[str, Any]:
-    """Calculate various metrics for the input text."""
-    sentences = sent_tokenize(text)
-    words = text.split()
+    """Calculate various text metrics."""
+    nlp = initialize_nlp()
+    doc = nlp(text)
     
-    return {
-        "sentence_count": len(sentences),
-        "word_count": len(words),
-        "avg_sentence_length": len(words) / len(sentences) if sentences else 0,
-        "avg_word_length": sum(len(word) for word in words) / len(words) if words else 0
+    # Basic metrics
+    metrics = {
+        'word_count': len([token for token in doc if not token.is_punct]),
+        'sentence_count': len(list(doc.sents)),
+        'avg_word_length': sum(len(token.text) for token in doc if not token.is_punct) / len([token for token in doc if not token.is_punct]) if len(doc) > 0 else 0,
     }
+    
+    # Entity metrics
+    entity_counts = {}
+    for ent in doc.ents:
+        entity_counts[ent.label_] = entity_counts.get(ent.label_, 0) + 1
+    metrics['named_entities'] = entity_counts
+    
+    return metrics
