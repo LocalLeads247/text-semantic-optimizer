@@ -76,3 +76,26 @@ async def optimize_text(text_input: TextInput):
     except Exception as e:
         logger.error(f"Unexpected error during optimization: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+# Test example
+if __name__ == "__main__":
+    text_input = TextInput(
+        content="The quick brown fox jumps over the lazy dog.",
+        optimization_level="medium",
+        preserve_keywords=[]
+    )
+    
+    optimized_text, metrics, suggestions = text_optimizer.optimize_text(
+        text_input.content,
+        text_input.optimization_level,
+        text_input.preserve_keywords
+    )
+    
+    print("Original text:")
+    print(text_input.content)
+    print("\nOptimized text:")
+    print(optimized_text)
+    print("\nMetrics:")
+    print(metrics)
+    print("\nSuggestions:")
+    print(suggestions)
